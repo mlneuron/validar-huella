@@ -121,6 +121,11 @@ app.post('/verify-authentication', async (req, res) => {
 
   res.json({ success: verification.verified });
 });
+app.post('/prueba-conexion', (req, res) => {
+  console.log('✅ [server] Recibida prueba de conexión.');
+  res.json({ ok: true, mensaje: 'Servidor operativo', hora: new Date().toISOString() });
+});
+
 
 // Puerto
 const PORT = process.env.PORT || 3000;
