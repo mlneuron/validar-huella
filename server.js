@@ -41,6 +41,12 @@ app.post('/verify-registration', async (req, res) => {
   });
   if (verification.verified && verification.registrationInfo) {
     fakeDB[userID].credential = verification.registrationInfo;
+
+    // ✅ Mostrar lo que se guardó
+    console.log('✔️ Credencial registrada correctamente:');
+    console.log(fakeDB[userID].credential);
+  } else {
+    console.log('❌ Registro fallido o incompleto');
   }
   res.json({ success: verification.verified });
 });
