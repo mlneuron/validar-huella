@@ -39,7 +39,7 @@ app.post('/verify-registration', async (req, res) => {
     expectedOrigin: 'https://validar-huella-production.up.railway.app',
     expectedRPID: 'validar-huella-production.up.railway.app',
   });
-  if (verification.verified) {
+  if (verification.verified && verification.registrationInfo) {
     fakeDB[userID].credential = verification.registrationInfo;
   }
   res.json({ success: verification.verified });
@@ -47,12 +47,17 @@ app.post('/verify-registration', async (req, res) => {
 
 // Autenticación
 app.get('/generate-authentication-options', (req, res) => {
+  if (!fakeDB[userID] || !fakeDB[userID].credential) {
+    return res.status(400).json({ error: 'No hay huella registrada para este usuario' });
+  }
+
   const options = generateAuthenticationOptions({
     allowCredentials: [{
       id: fakeDB[userID].credential.credentialID,
       type: 'public-key',
     }],
   });
+
   fakeDB[userID].authOptions = options;
   res.json(options);
 });
