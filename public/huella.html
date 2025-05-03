@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Validar Huella - WebAuthn</title>
+</head>
+<body>
+  <h1>Validación con Huella (diputado-test)</h1>
+  <button onclick="registrarHuella()">Registrar Huella</button>
+  <button onclick="autenticarHuella()">Validar Huella</button>
+
+  <script type="module">
+    import {
+      startRegistration,
+      startAuthentication
+    } from 'https://cdn.jsdelivr.net/npm/@simplewebauthn/browser/dist/simplewebauthn-browser.min.mjs';
+
+    const backendURL = 'https://auth-voto.up.railway.app'; // Cámbialo por tu subdominio Railway
+
+    async function registrarHuella() {
+      const res = await fetch(`${backendURL}/generate-registration-options`);
+      const options = await res.json();
+      const credential = await startRegistration(options);
+      await fetch(`${backendURL}/verify-registration`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+      alert("✅ Huella registrada con éxito.");
+    }
+
+    async function autenticarHuella() {
+      const res = await fetch(`${backendURL}/generate-authentication-options`);
+      const options = await res.json();
+      const assertion = await startAuthentication(options);
+      const result = await fetch(`${backendURL}/verify-authentication`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assertion })
+      });
+      const data = await result.json();
+      if (data.success) {
+        alert("🎉 Validado correctamente.");
+      } else {
+        alert("❌ Falló la validación.");
+      }
+    }
+  </script>
+</body>
+</html>
