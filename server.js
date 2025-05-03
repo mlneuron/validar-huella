@@ -36,8 +36,8 @@ app.post('/verify-registration', async (req, res) => {
   const verification = await verifyRegistrationResponse({
     response: credential,
     expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-    expectedOrigin: 'https://auth-voto.up.railway.app',
-    expectedRPID: 'auth-voto.up.railway.app',
+    expectedOrigin: 'https://validar-huella-production.up.railway.app',
+    expectedRPID: 'validar-huella-production.up.railway.app',
   });
   if (verification.verified) {
     fakeDB[userID].credential = verification.registrationInfo;
