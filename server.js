@@ -19,10 +19,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
 
-// Generar opciones de registro
+// Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
+  console.log('\n---- Iniciam /generate-registration-options');
   const { userID } = req.body;
-  if (!userID) return res.status(400).json({ error: 'Falta userID' });
+  console.log(`[server] userID recibido: ${userID}`);
+
+  if (!userID) {
+    console.warn(`[server] ❌ Falta userID`);
+    return res.status(400).json({ error: 'Falta userID' });
+  }
 
   const options = generateRegistrationOptions({
     rpName: 'Sistema de Votación',
@@ -31,13 +37,21 @@ app.post('/generate-registration-options', (req, res) => {
   });
 
   fakeDB[userID] = { registrationOptions: options };
+  console.log(`[server] ✅ Opciones generadas para ${userID}`);
   res.json(options);
 });
 
-// Verificar registro
+// Registro - paso 2
 app.post('/verify-registration', async (req, res) => {
+  console.log('\n---- Iniciam /verify-registration');
   const { credential, userID } = req.body;
-  if (!fakeDB[userID]) return res.status(400).json({ error: 'Usuario no registrado' });
+  console.log(`[server] userID recibido: ${userID}`);
+  console.log(`[server] credential recibida:`, credential);
+
+  if (!fakeDB[userID]) {
+    console.warn(`[server] ❌ No existe userID en fakeDB`);
+    return res.status(400).json({ error: 'Usuario no registrado' });
+  }
 
   const verification = await verifyRegistrationResponse({
     response: credential,
@@ -56,10 +70,14 @@ app.post('/verify-registration', async (req, res) => {
   res.json({ success: verification.verified });
 });
 
-// Generar opciones de autenticación
+// Autenticación - paso 1
 app.post('/generate-authentication-options', (req, res) => {
+  console.log('\n---- Iniciam /generate-authentication-options');
   const { userID } = req.body;
+  console.log(`[server] userID recibido: ${userID}`);
+
   if (!fakeDB[userID] || !fakeDB[userID].credential) {
+    console.warn(`[server] ❌ No hay credencial registrada para ${userID}`);
     return res.status(400).json({ error: 'No hay huella registrada para este usuario' });
   }
 
@@ -71,13 +89,21 @@ app.post('/generate-authentication-options', (req, res) => {
   });
 
   fakeDB[userID].authOptions = options;
+  console.log(`[server] ✅ Opciones de autenticación generadas para ${userID}`);
   res.json(options);
 });
 
-// Verificar autenticación
+// Autenticación - paso 2
 app.post('/verify-authentication', async (req, res) => {
+  console.log('\n---- Iniciam /verify-authentication');
   const { assertion, userID } = req.body;
-  if (!fakeDB[userID]) return res.status(400).json({ error: 'Usuario no registrado' });
+  console.log(`[server] userID recibido: ${userID}`);
+  console.log(`[server] assertion recibida:`, assertion);
+
+  if (!fakeDB[userID]) {
+    console.warn(`[server] ❌ Usuario no registrado`);
+    return res.status(400).json({ error: 'Usuario no registrado' });
+  }
 
   const verification = await verifyAuthenticationResponse({
     response: assertion,
@@ -90,11 +116,12 @@ app.post('/verify-authentication', async (req, res) => {
   if (verification.verified) {
     console.log(`🎉 Validación exitosa para ${userID}`);
   } else {
-    console.log(`❌ Falló la validación para ${userID}`);
+    console.warn(`❌ Falló la validación para ${userID}`);
   }
 
   res.json({ success: verification.verified });
 });
 
+// Puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
