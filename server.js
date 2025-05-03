@@ -17,42 +17,48 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const userID = 'diputado-test';
 let fakeDB = {};
 
-// Registro
-app.get('/generate-registration-options', (req, res) => {
+// Generar opciones de registro
+app.post('/generate-registration-options', (req, res) => {
+  const { userID } = req.body;
+  if (!userID) return res.status(400).json({ error: 'Falta userID' });
+
   const options = generateRegistrationOptions({
     rpName: 'Sistema de Votación',
     userID,
-    userName: 'diputado@ejemplo.com',
+    userName: `${userID}@ejemplo.com`,
   });
+
   fakeDB[userID] = { registrationOptions: options };
   res.json(options);
 });
 
+// Verificar registro
 app.post('/verify-registration', async (req, res) => {
-  const { credential } = req.body;
+  const { credential, userID } = req.body;
+  if (!fakeDB[userID]) return res.status(400).json({ error: 'Usuario no registrado' });
+
   const verification = await verifyRegistrationResponse({
     response: credential,
     expectedChallenge: fakeDB[userID].registrationOptions.challenge,
     expectedOrigin: 'https://validar-huella-production.up.railway.app',
     expectedRPID: 'validar-huella-production.up.railway.app',
   });
+
   if (verification.verified && verification.registrationInfo) {
     fakeDB[userID].credential = verification.registrationInfo;
-
-    // ✅ Mostrar lo que se guardó
-    console.log('✔️ Credencial registrada correctamente:');
-    console.log(fakeDB[userID].credential);
+    console.log(`✔️ Credencial registrada para ${userID}`);
   } else {
-    console.log('❌ Registro fallido o incompleto');
+    console.log(`❌ Registro fallido para ${userID}`);
   }
+
   res.json({ success: verification.verified });
 });
 
-// Autenticación
-app.get('/generate-authentication-options', (req, res) => {
+// Generar opciones de autenticación
+app.post('/generate-authentication-options', (req, res) => {
+  const { userID } = req.body;
   if (!fakeDB[userID] || !fakeDB[userID].credential) {
     return res.status(400).json({ error: 'No hay huella registrada para este usuario' });
   }
@@ -68,15 +74,25 @@ app.get('/generate-authentication-options', (req, res) => {
   res.json(options);
 });
 
+// Verificar autenticación
 app.post('/verify-authentication', async (req, res) => {
-  const { assertion } = req.body;
+  const { assertion, userID } = req.body;
+  if (!fakeDB[userID]) return res.status(400).json({ error: 'Usuario no registrado' });
+
   const verification = await verifyAuthenticationResponse({
     response: assertion,
     expectedChallenge: fakeDB[userID].authOptions.challenge,
-    expectedOrigin: 'https://auth-voto.up.railway.app',
-    expectedRPID: 'auth-voto.up.railway.app',
+    expectedOrigin: 'https://validar-huella-production.up.railway.app',
+    expectedRPID: 'validar-huella-production.up.railway.app',
     authenticator: fakeDB[userID].credential,
   });
+
+  if (verification.verified) {
+    console.log(`🎉 Validación exitosa para ${userID}`);
+  } else {
+    console.log(`❌ Falló la validación para ${userID}`);
+  }
+
   res.json({ success: verification.verified });
 });
 
