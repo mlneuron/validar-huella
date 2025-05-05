@@ -18,7 +18,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
-console.log('\n::: >> 1.1');
+console.log('\n::: >> 1.2');
+
 // Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
   console.log('\n---- Iniciam /generate-registration-options');
@@ -58,8 +59,8 @@ app.post('/verify-registration', async (req, res) => {
   const verification = await verifyRegistrationResponse({
     response: credential,
     expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-    expectedOrigin: origin, // ← dinámico
-    expectedRPID: 'validar-huella-production.up.railway.app',
+    expectedOrigin: origin,
+    expectedRPID: 'auth.sivote.neuron.com.mx',
   });
 
   if (verification.verified && verification.registrationInfo) {
@@ -109,17 +110,13 @@ app.post('/verify-authentication', async (req, res) => {
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
-  const origin = req.headers.origin;
-  console.log('🧭 Origin recibido:', origin);
-
   const verification = await verifyAuthenticationResponse({
     response: assertion,
     expectedChallenge: fakeDB[userID].authOptions.challenge,
-    expectedOrigin: origin,  // 👈 ahora toma el origin dinámico
+    expectedOrigin: origin,
     expectedRPID: 'auth.sivote.neuron.com.mx',
     authenticator: fakeDB[userID].credential,
   });
-
 
   if (verification.verified) {
     console.log(`🎉 Validación exitosa para ${userID}`);
@@ -130,11 +127,12 @@ app.post('/verify-authentication', async (req, res) => {
   res.json({ success: verification.verified });
 });
 
-// Prueba
+// Prueba de conexión
 app.post('/prueba-conexion', (req, res) => {
   console.log('✅ [server] Recibida prueba de conexión.');
   res.json({ ok: true, mensaje: 'Servidor operativo', hora: new Date().toISOString() });
 });
 
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
