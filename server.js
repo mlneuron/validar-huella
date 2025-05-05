@@ -45,39 +45,31 @@ app.post('/generate-registration-options', (req, res) => {
 app.post('/verify-registration', async (req, res) => {
   console.log('\n---- Iniciam /verify-registration');
   const { credential, userID } = req.body;
+  const origin = req.headers.origin;
   console.log(`[server] userID recibido: ${userID}`);
-  console.log(`[server] credential recibida:`);
+  console.log(`[server] credential recibida:`, credential);
+  console.log(`[server] 🧭 Origin recibido: ${origin}`);
 
   if (!fakeDB[userID]) {
     console.warn(`[server] ❌ No existe userID en fakeDB`);
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
-  try {
-    const verification = await verifyRegistrationResponse({
-      response: credential,
-      expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-      expectedOrigins: [
-        'https://validar-huella-production.up.railway.app',
-        'https://sivote.neuron.com.mx',
-      ],
-      expectedRPID: 'validar-huella-production.up.railway.app',
-    });
+  const verification = await verifyRegistrationResponse({
+    response: credential,
+    expectedChallenge: fakeDB[userID].registrationOptions.challenge,
+    expectedOrigin: origin, // ← dinámico
+    expectedRPID: 'validar-huella-production.up.railway.app',
+  });
 
-    console.log('[server] Resultado de verifyRegistrationResponse:', verification);
-
-    if (verification.verified && verification.registrationInfo) {
-      fakeDB[userID].credential = verification.registrationInfo;
-      console.log(`✔️ Credencial registrada para ${userID}`);
-    } else {
-      console.log(`❌ Registro fallido para ${userID}`);
-    }
-
-    res.json({ success: verification.verified });
-  } catch (err) {
-    console.error('❌ Error durante verifyRegistrationResponse:', err);
-    res.status(500).json({ error: err.message });
+  if (verification.verified && verification.registrationInfo) {
+    fakeDB[userID].credential = verification.registrationInfo;
+    console.log(`✔️ Credencial registrada para ${userID}`);
+  } else {
+    console.log(`❌ Registro fallido para ${userID}`);
   }
+
+  res.json({ success: verification.verified });
 });
 
 // Autenticación - paso 1
@@ -107,39 +99,31 @@ app.post('/generate-authentication-options', (req, res) => {
 app.post('/verify-authentication', async (req, res) => {
   console.log('\n---- Iniciam /verify-authentication');
   const { assertion, userID } = req.body;
+  const origin = req.headers.origin;
   console.log(`[server] userID recibido: ${userID}`);
-  console.log(`[server] assertion recibida:`);
+  console.log(`[server] assertion recibida:`, assertion);
+  console.log(`[server] 🧭 Origin recibido: ${origin}`);
 
   if (!fakeDB[userID]) {
     console.warn(`[server] ❌ Usuario no registrado`);
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
-  try {
-    const verification = await verifyAuthenticationResponse({
-      response: assertion,
-      expectedChallenge: fakeDB[userID].authOptions.challenge,
-      expectedOrigins: [
-        'https://validar-huella-production.up.railway.app',
-        'https://sivote.neuron.com.mx',
-      ],
-      expectedRPID: 'validar-huella-production.up.railway.app',
-      authenticator: fakeDB[userID].credential,
-    });
+  const verification = await verifyAuthenticationResponse({
+    response: assertion,
+    expectedChallenge: fakeDB[userID].authOptions.challenge,
+    expectedOrigin: origin, // ← dinámico
+    expectedRPID: 'validar-huella-production.up.railway.app',
+    authenticator: fakeDB[userID].credential,
+  });
 
-    console.log('[server] Resultado de verifyAuthenticationResponse:', verification);
-
-    if (verification.verified) {
-      console.log(`🎉 Validación exitosa para ${userID}`);
-    } else {
-      console.warn(`❌ Falló la validación para ${userID}`);
-    }
-
-    res.json({ success: verification.verified });
-  } catch (err) {
-    console.error('❌ Error durante verifyAuthenticationResponse:', err);
-    res.status(500).json({ error: err.message });
+  if (verification.verified) {
+    console.log(`🎉 Validación exitosa para ${userID}`);
+  } else {
+    console.warn(`❌ Falló la validación para ${userID}`);
   }
+
+  res.json({ success: verification.verified });
 });
 
 // Prueba
@@ -148,6 +132,5 @@ app.post('/prueba-conexion', (req, res) => {
   res.json({ ok: true, mensaje: 'Servidor operativo', hora: new Date().toISOString() });
 });
 
-// Puerto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
