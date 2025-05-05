@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
 
-// Registro - paso 1
+// ✅ Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
   console.log('\n---- Iniciam /generate-registration-options');
   const { userID } = req.body;
@@ -41,36 +41,43 @@ app.post('/generate-registration-options', (req, res) => {
   res.json(options);
 });
 
-// Registro - paso 2
+// ✅ Registro - paso 2
 app.post('/verify-registration', async (req, res) => {
   console.log('\n---- Iniciam /verify-registration');
   const { credential, userID } = req.body;
   console.log(`[server] userID recibido: ${userID}`);
-  console.log(`[server] credential recibida:`, credential);
+  console.log(`[server] credential recibida:`);
 
   if (!fakeDB[userID]) {
     console.warn(`[server] ❌ No existe userID en fakeDB`);
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
-  const verification = await verifyRegistrationResponse({
-    response: credential,
-    expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-    expectedOrigin: 'https://validar-huella-production.up.railway.app',
-    expectedRPID: 'validar-huella-production.up.railway.app',
-  });
+  try {
+    const verification = await verifyRegistrationResponse({
+      response: credential,
+      expectedChallenge: fakeDB[userID].registrationOptions.challenge,
+      expectedOrigin: 'https://validar-huella-production.up.railway.app',
+      expectedRPID: 'validar-huella-production.up.railway.app',
+    });
 
-  if (verification.verified && verification.registrationInfo) {
-    fakeDB[userID].credential = verification.registrationInfo;
-    console.log(`✔️ Credencial registrada para ${userID}`);
-  } else {
-    console.log(`❌ Registro fallido para ${userID}`);
+    console.log('[server] Resultado de verifyRegistrationResponse:', verification);
+
+    if (verification.verified && verification.registrationInfo) {
+      fakeDB[userID].credential = verification.registrationInfo;
+      console.log(`✔️ Credencial registrada para ${userID}`);
+    } else {
+      console.warn(`❌ Registro fallido o incompleto para ${userID}`);
+    }
+
+    res.json({ success: verification.verified });
+  } catch (error) {
+    console.error('❌ Error durante verifyRegistrationResponse:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  res.json({ success: verification.verified });
 });
 
-// Autenticación - paso 1
+// ✅ Autenticación - paso 1
 app.post('/generate-authentication-options', (req, res) => {
   console.log('\n---- Iniciam /generate-authentication-options');
   const { userID } = req.body;
@@ -93,39 +100,52 @@ app.post('/generate-authentication-options', (req, res) => {
   res.json(options);
 });
 
-// Autenticación - paso 2
+// ✅ Autenticación - paso 2
 app.post('/verify-authentication', async (req, res) => {
   console.log('\n---- Iniciam /verify-authentication');
   const { assertion, userID } = req.body;
   console.log(`[server] userID recibido: ${userID}`);
-  console.log(`[server] assertion recibida:`, assertion);
+  console.log(`[server] assertion recibida:`);
 
   if (!fakeDB[userID]) {
     console.warn(`[server] ❌ Usuario no registrado`);
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
-  const verification = await verifyAuthenticationResponse({
-    response: assertion,
-    expectedChallenge: fakeDB[userID].authOptions.challenge,
-    expectedOrigin: 'https://validar-huella-production.up.railway.app',
-    expectedRPID: 'validar-huella-production.up.railway.app',
-    authenticator: fakeDB[userID].credential,
-  });
+  try {
+    const verification = await verifyAuthenticationResponse({
+      response: assertion,
+      expectedChallenge: fakeDB[userID].authOptions.challenge,
+      expectedOrigin: 'https://validar-huella-production.up.railway.app',
+      expectedRPID: 'validar-huella-production.up.railway.app',
+      authenticator: fakeDB[userID].credential,
+    });
 
-  if (verification.verified) {
-    console.log(`🎉 Validación exitosa para ${userID}`);
-  } else {
-    console.warn(`❌ Falló la validación para ${userID}`);
+    console.log('[server] Resultado de verifyAuthenticationResponse:', verification);
+
+    if (verification.verified) {
+      console.log(`🎉 Validación exitosa para ${userID}`);
+    } else {
+      console.warn(`❌ Falló la validación para ${userID}`);
+    }
+
+    res.json({ success: verification.verified });
+  } catch (error) {
+    console.error('❌ Error durante verifyAuthenticationResponse:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
-
-  res.json({ success: verification.verified });
 });
+
+// Ruta de prueba
 app.post('/prueba-conexion', (req, res) => {
   console.log('✅ [server] Recibida prueba de conexión.');
   res.json({ ok: true, mensaje: 'Servidor operativo', hora: new Date().toISOString() });
 });
 
+// Ruta debug
+app.get('/debug', (req, res) => {
+  res.json(fakeDB);
+});
 
 // Puerto
 const PORT = process.env.PORT || 3000;
