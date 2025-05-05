@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
-console.log('\n::: >> 1.2');
+console.log('\n::: >> 1.3');
 
 // Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
@@ -56,11 +56,18 @@ app.post('/verify-registration', async (req, res) => {
     return res.status(400).json({ error: 'Usuario no registrado' });
   }
 
+  const hostname = req.hostname;
+  const rpidValido = ['auth.sivote.neuron.com.mx', 'validar-huella-production.up.railway.app'];
+
+  if (!rpidValido.includes(hostname)) {
+    return res.status(400).json({ error: 'RPID no válido' });
+  }
+
   const verification = await verifyRegistrationResponse({
     response: credential,
     expectedChallenge: fakeDB[userID].registrationOptions.challenge,
     expectedOrigin: origin,
-    expectedRPID: 'auth.sivote.neuron.com.mx',
+    expectedRPID: hostname, // ← ahora usa el que realmente se usó
   });
 
   if (verification.verified && verification.registrationInfo) {
