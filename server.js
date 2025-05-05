@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
 
-// ✅ Registro - paso 1
+// Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
   console.log('\n---- Iniciam /generate-registration-options');
   const { userID } = req.body;
@@ -41,7 +41,7 @@ app.post('/generate-registration-options', (req, res) => {
   res.json(options);
 });
 
-// ✅ Registro - paso 2
+// Registro - paso 2
 app.post('/verify-registration', async (req, res) => {
   console.log('\n---- Iniciam /verify-registration');
   const { credential, userID } = req.body;
@@ -57,7 +57,10 @@ app.post('/verify-registration', async (req, res) => {
     const verification = await verifyRegistrationResponse({
       response: credential,
       expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-      expectedOrigin: 'https://validar-huella-production.up.railway.app',
+      expectedOrigins: [
+        'https://validar-huella-production.up.railway.app',
+        'https://sivote.neuron.com.mx',
+      ],
       expectedRPID: 'validar-huella-production.up.railway.app',
     });
 
@@ -67,17 +70,17 @@ app.post('/verify-registration', async (req, res) => {
       fakeDB[userID].credential = verification.registrationInfo;
       console.log(`✔️ Credencial registrada para ${userID}`);
     } else {
-      console.warn(`❌ Registro fallido o incompleto para ${userID}`);
+      console.log(`❌ Registro fallido para ${userID}`);
     }
 
     res.json({ success: verification.verified });
-  } catch (error) {
-    console.error('❌ Error durante verifyRegistrationResponse:', error);
-    res.status(500).json({ success: false, error: error.message });
+  } catch (err) {
+    console.error('❌ Error durante verifyRegistrationResponse:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ Autenticación - paso 1
+// Autenticación - paso 1
 app.post('/generate-authentication-options', (req, res) => {
   console.log('\n---- Iniciam /generate-authentication-options');
   const { userID } = req.body;
@@ -100,7 +103,7 @@ app.post('/generate-authentication-options', (req, res) => {
   res.json(options);
 });
 
-// ✅ Autenticación - paso 2
+// Autenticación - paso 2
 app.post('/verify-authentication', async (req, res) => {
   console.log('\n---- Iniciam /verify-authentication');
   const { assertion, userID } = req.body;
@@ -116,7 +119,10 @@ app.post('/verify-authentication', async (req, res) => {
     const verification = await verifyAuthenticationResponse({
       response: assertion,
       expectedChallenge: fakeDB[userID].authOptions.challenge,
-      expectedOrigin: 'https://validar-huella-production.up.railway.app',
+      expectedOrigins: [
+        'https://validar-huella-production.up.railway.app',
+        'https://sivote.neuron.com.mx',
+      ],
       expectedRPID: 'validar-huella-production.up.railway.app',
       authenticator: fakeDB[userID].credential,
     });
@@ -130,21 +136,16 @@ app.post('/verify-authentication', async (req, res) => {
     }
 
     res.json({ success: verification.verified });
-  } catch (error) {
-    console.error('❌ Error durante verifyAuthenticationResponse:', error);
-    res.status(500).json({ success: false, error: error.message });
+  } catch (err) {
+    console.error('❌ Error durante verifyAuthenticationResponse:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Ruta de prueba
+// Prueba
 app.post('/prueba-conexion', (req, res) => {
   console.log('✅ [server] Recibida prueba de conexión.');
   res.json({ ok: true, mensaje: 'Servidor operativo', hora: new Date().toISOString() });
-});
-
-// Ruta debug
-app.get('/debug', (req, res) => {
-  res.json(fakeDB);
 });
 
 // Puerto
