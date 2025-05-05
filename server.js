@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
-console.log('\n::: >> 1.3');
+console.log('\n::: >> 1.4');
 
 // Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
