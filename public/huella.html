@@ -1,50 +1,147 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Validar Huella - WebAuthn</title>
-</head>
-<body>
-  <h1>Validación con Huella (diputado-test)</h1>
-  <button onclick="registrarHuella()">Registrar Huella</button>
-  <button onclick="autenticarHuella()">Validar Huella</button>
+<!doctype html>
+        <html lang="es" data-bs-theme="">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Sistema de votos electrónico</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+            <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+            <link href="https://sivote.neuron.com.mx/Css/style.css" rel="stylesheet">
+            <link href="https://sivote.neuron.com.mx/Css/interfase.css" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
+            <link rel="icon" type="image/png" sizes="32x32" href="/Imagenes/favicon-250x250.png">
+            <link rel="icon" type="image/png" sizes="16x16" href="/Imagenes/favicon-150x150.png">
+        </head>  
+  <body>
 
-  <script type="module">
-    import {
-      startRegistration,
-      startAuthentication
-    } from 'https://cdn.jsdelivr.net/npm/@simplewebauthn/browser/dist/simplewebauthn-browser.min.mjs';
+  <div class="container-grid">
+    <!-- Contenido Principal -->
+      <main class="main-content">
+          <div class="container ">
+            <div class="d-flex justify-content-center align-items-center" style="margin-top: 1rem;">
+              <img src="https://sivote.neuron.com.mx/Imagenes/LOGO_LXIV_LEGISLATURA_OFICIAL.png" alt="Logo Gris" class="img-home-app">
+            </div>
+            <div class="text-center mt-3">
+              <h1>ACCESO BIOMÉTRICO</h1>
+            </div>
+          </div>
+          <!-- Botones para iniciar sesión y cerrar sesión -->
+          <div class="d-flex justify-content-center">
+            <button id="btnCerrarSesion" class="btn btn-secondary mx-2" onclick="registrarHuella()">Registrar Huella</button>
+            <button id="btnIniciarSesion" class="btn btn-primary mx-2" onclick="autenticarHuella()">Validar Huella</button>
+          </div>
+          <div class="d-flex justify-content-center align-items-center" style="margin-top: 5rem;">
+            <img src="https://sivote.neuron.com.mx/Imagenes/logo-gris.svg" alt="Logo Gris" class="img-home-app">
+          </div>
+      </main>
+  </div>
+<style type="text/css">
+  .container-grid{
+    display: block;
+  }
+</style>
 
-    const backendURL = 'https://auth-voto.up.railway.app'; // Cámbialo por tu subdominio Railway
+<script type="module">
+  import {
+    startRegistration,
+    startAuthentication
+  } from 'https://esm.sh/@simplewebauthn/browser@7.4.0';
 
-    async function registrarHuella() {
-      const res = await fetch(`${backendURL}/generate-registration-options`);
+  const backendURL = 'https://validar-huella-production.up.railway.app';
+  const userID = 'diputado-test';
+
+  async function registrarHuella() {
+    try {
+      console.log('[registro] Solicitando opciones de registro...');
+      const res = await fetch(`${backendURL}/generate-registration-options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userID })
+      });
+
       const options = await res.json();
+      console.log('[registro] Opciones recibidas:', options);
+
       const credential = await startRegistration(options);
-      await fetch(`${backendURL}/verify-registration`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential })
-      });
-      alert("✅ Huella registrada con éxito.");
-    }
+      console.log('[registro] Credencial generada:', credential);
 
-    async function autenticarHuella() {
-      const res = await fetch(`${backendURL}/generate-authentication-options`);
-      const options = await res.json();
-      const assertion = await startAuthentication(options);
-      const result = await fetch(`${backendURL}/verify-authentication`, {
+      const res2 = await fetch(`${backendURL}/verify-registration`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assertion })
+        body: JSON.stringify({ credential, userID })
       });
-      const data = await result.json();
-      if (data.success) {
+
+      const result = await res2.json();
+      console.log('[registro] Resultado del backend:', result);
+
+      if (result.success) {
+        alert("✅ Huella registrada con éxito.");
+      } else {
+        alert("❌ Registro fallido.");
+      }
+    } catch (err) {
+      console.error('[registro] Error inesperado:', err);
+      alert("❌ Error al registrar huella.");
+    }
+  }
+
+  async function autenticarHuella() {
+    try {
+      console.log('[autenticación] Solicitando opciones de autenticación...');
+      const res = await fetch(`${backendURL}/generate-authentication-options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userID })
+      });
+
+      const options = await res.json();
+      console.log('[autenticación] Opciones recibidas:', options);
+
+      const assertion = await startAuthentication(options);
+      console.log('[autenticación] Assertion generada:', assertion);
+
+      const res2 = await fetch(`${backendURL}/verify-authentication`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assertion, userID })
+      });
+
+      const result = await res2.json();
+      console.log('[autenticación] Resultado del backend:', result);
+
+      if (result.success) {
         alert("🎉 Validado correctamente.");
       } else {
         alert("❌ Falló la validación.");
       }
+    } catch (err) {
+      console.error('[autenticación] Error inesperado:', err);
+      alert("❌ Error al validar huella.");
     }
-  </script>
-</body>
-</html>
+  }
+  async function probarConexion() {
+    try {
+      console.log('[prueba] Enviando prueba simple...');
+      const res = await fetch(`${backendURL}/prueba-conexion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test: true })
+      });
+
+      const data = await res.json();
+      console.log('[prueba] Respuesta recibida:', data);
+      alert("✅ Conexión con backend exitosa.");
+    } catch (error) {
+      console.error('[prueba] Error de conexión con backend:', error);
+      alert("❌ No se pudo conectar con el servidor.");
+    }
+  }
+
+  window.registrarHuella = registrarHuella;
+  window.autenticarHuella = autenticarHuella;
+  window.probarConexion = probarConexion;
+</script>
+
+            
+        </body></html>
