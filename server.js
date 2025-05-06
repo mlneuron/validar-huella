@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 let fakeDB = {};
-
+console.log('\n:::>> 1.1');
 // ✅ Registro - paso 1
 app.post('/generate-registration-options', (req, res) => {
   console.log('\n---- Iniciam /generate-registration-options');
@@ -57,8 +57,8 @@ app.post('/verify-registration', async (req, res) => {
     const verification = await verifyRegistrationResponse({
       response: credential,
       expectedChallenge: fakeDB[userID].registrationOptions.challenge,
-      expectedOrigin: 'https://validar-huella-production.up.railway.app',
-      expectedRPID: 'validar-huella-production.up.railway.app',
+      expectedOrigin: 'https://auth.sivote.neuron.com.mx',
+      expectedRPID: 'auth.sivote.neuron.com.mx',
     });
 
     console.log('[server] Resultado de verifyRegistrationResponse:', verification);
@@ -116,8 +116,8 @@ app.post('/verify-authentication', async (req, res) => {
     const verification = await verifyAuthenticationResponse({
       response: assertion,
       expectedChallenge: fakeDB[userID].authOptions.challenge,
-      expectedOrigin: 'https://validar-huella-production.up.railway.app',
-      expectedRPID: 'validar-huella-production.up.railway.app',
+      expectedOrigin: 'https://auth.sivote.neuron.com.mx',
+      expectedRPID: 'auth.sivote.neuron.com.mx',
       authenticator: fakeDB[userID].credential,
     });
 
